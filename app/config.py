@@ -28,7 +28,11 @@ class Settings(BaseSettings):
         # postgresql(СУБД_название)+psycopg(ЛИБА_название)://user_name:pass@host:port/db_name
         return f"postgresql+psycopg_async://{self.DB_USER}:{self.DB_PASS}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
-    model_config = SettingsConfigDict(env_file=".env")
+    JWT_SECRET_KEY: str = Field(default="super_secret_123456789")
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
 
 settings = Settings()
