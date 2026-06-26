@@ -26,10 +26,8 @@ async def login_user(login_data: UserLogin, session: AsyncSession = Depends(get_
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_user(
-    current_user: UserOrm = Depends(get_current_user), session: AsyncSession = Depends(get_async_session)
-):
-    return ...
+async def get_user_profile(current_user: UserOrm = Depends(get_current_user)):
+    return current_user
 
 
 @router.patch("/me/profile", response_model=UserResponse)  # ИЗМЕНИТЬ ИМЯ и/или Email
@@ -38,7 +36,7 @@ async def update_user(
     current_user: UserOrm = Depends(get_current_user),
     session: AsyncSession = Depends(get_async_session),
 ):
-    return ...
+    return await user_service.update_user(data, current_user, session)
 
 
 @router.patch("/me/password", status_code=status.HTTP_204_NO_CONTENT)  # Только пароль

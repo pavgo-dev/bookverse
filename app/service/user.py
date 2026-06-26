@@ -7,7 +7,7 @@ from app.dependencies import create_access_token
 from app.models.user import UserOrm
 from app.repository import user as user_repository
 from app.schemas.auth import TokenResponse, UserLogin
-from app.schemas.user import CreateUser
+from app.schemas.user import CreateUser, UserProfileUpdate
 from app.utils import hash_password, verify_password
 
 
@@ -16,7 +16,7 @@ async def create_user(user_data: CreateUser, session: AsyncSession) -> UserOrm:
 
     if existing_user:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
+            status_code=status.HTTP_409_CONFLICT,
             detail=f"User with {user_data.email} already exists",
         )
 
@@ -66,3 +66,21 @@ async def login_user(login_data: UserLogin, session: AsyncSession) -> TokenRespo
     token = create_access_token(data=token_payload)
 
     return TokenResponse(access_token=token)
+
+
+async def update_user(data: UserProfileUpdate, current_user: UserOrm, session: AsyncSession) -> UserOrm:
+    if data.email and data.email != current_user.email:
+        email_owner = await user_repository.get_user_by_email(session, data.email)
+        if email_owner:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"User with {data.email} already exists")
+        else:
+            current_user.email = data.email
+
+    if data.full_name and data.full_name != current_user.full_name:
+        current_user.full_name = data.full_name
+
+    session.add(current_user)
+    await session.commit()
+    await session.refresh(current_user)
+
+    return current_user
