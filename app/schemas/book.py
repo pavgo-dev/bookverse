@@ -1,8 +1,11 @@
 import re
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.schemas.review import ReviewResponse
 
 
 class BookBase(BaseModel):
@@ -42,3 +45,27 @@ class BookResponse(BookBase):
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+
+
+class BookListResponse(BaseModel):
+    total: int = Field(description="Total number of books by specified filters")
+    books: list[BookResponse]
+
+
+class BookDetailResponse(BookResponse):
+    avg_rating: float = Field(default=0.0, ge=0.0, le=5.0, description="Average book rating")
+    reviews_qty: int = Field(default=0, ge=0, description="Total number of reviews")
+    last_reviews: list[ReviewResponse] = Field(default_factory=list, description="Top 5 latest reviews")
+
+
+class BookQueryParams(BaseModel):
+    limit: int = Field(default=10, ge=1, le=100, description="Number of books per page")
+    offset: int = Field(default=0, ge=0, description="Skip the first N books")
+
+    title: str | None = Field(default=None, description="Partial match by name")
+    author: str | None = Field(default=None, description="Partial match by author")
+    year_min: int | None = Field(default=None, ge=0, description="Minimum year of publication")
+    year_max: int | None = Field(default=None, ge=0, le=datetime.now().year, description="Maximum year of publication")
+
+    sort_by: Literal["title", "published_year", "author"] = Field(default="title", description="Sorting field")
+    order: Literal["asc", "desc"] = Field(default="asc", description="Sorting direction")

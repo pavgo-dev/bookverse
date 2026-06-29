@@ -30,7 +30,7 @@ async def get_user_profile(current_user: UserOrm = Depends(get_current_user)):
     return current_user
 
 
-@router.patch("/me/profile", response_model=UserResponse)  # ИЗМЕНИТЬ ИМЯ и/или Email
+@router.patch("/me/profile", response_model=UserResponse)
 async def update_user(
     data: UserProfileUpdate,
     current_user: UserOrm = Depends(get_current_user),
@@ -39,19 +39,17 @@ async def update_user(
     return await user_service.update_user(data, current_user, session)
 
 
-@router.patch("/me/password", status_code=status.HTTP_204_NO_CONTENT)  # Только пароль
+@router.patch("/me/password", status_code=status.HTTP_204_NO_CONTENT)
 async def update_user_password(
     data: UserPasswordUpdate,
     current_user: UserOrm = Depends(get_current_user),
     session: AsyncSession = Depends(get_async_session),
 ):
-    # await service.func Которая изменяет пароль / Нужно убедиться, что data.old_password==current_user.password
-    return None
+    await user_service.update_password(data, current_user, session)
 
 
 @router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(
     current_user: UserOrm = Depends(get_current_user), session: AsyncSession = Depends(get_async_session)
 ):
-    # await service.func Которая удалит пользователя
-    return None
+    await user_service.delete_user(current_user, session)

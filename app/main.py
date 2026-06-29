@@ -17,6 +17,6 @@ app.include_router(book_router, prefix="/api/v1/books", tags=["Books"])
 @app.get("/", tags=["Root"])
 async def root():
     return {
-        "message": "Welcome to Bookverse API!",
+        "message": "Welcome to Bookverse API",
         "docs_url": "/docs",
     }
