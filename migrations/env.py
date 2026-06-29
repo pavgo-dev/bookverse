@@ -72,8 +72,12 @@ async def run_async_migrations() -> None:
 
     """
     configuration = config.get_section(config.config_ini_section, {})
-    configuration["sqlalchemy.url"] = settings.DATABASE_URL_psycopg_async
+    test_url = config.attributes.get("test_db_url")
 
+    if test_url:
+        configuration["sqlalchemy.url"] = test_url
+    else:
+        configuration["sqlalchemy.url"] = settings.DATABASE_URL_psycopg_async
     connectable = async_engine_from_config(
         configuration,
         prefix="sqlalchemy.",
