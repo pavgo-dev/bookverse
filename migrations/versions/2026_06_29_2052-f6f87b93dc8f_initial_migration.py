@@ -1,8 +1,8 @@
 """initial_migration
 
-Revision ID: a83c08cb9c5b
+Revision ID: f6f87b93dc8f
 Revises:
-Create Date: 2026-06-25 23:40:58.508536
+Create Date: 2026-06-29 20:52:42.252003
 
 """
 
@@ -12,7 +12,7 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = "a83c08cb9c5b"
+revision: str = "f6f87b93dc8f"
 down_revision: str | Sequence[str] | None = None
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
@@ -43,8 +43,8 @@ def upgrade() -> None:
         sa.Column("email", sa.String(length=150), nullable=False),
         sa.Column("hashed_password", sa.String(length=128), nullable=False),
         sa.Column("full_name", sa.String(length=128), nullable=False),
-        sa.Column("is_active", sa.Boolean(), nullable=False),
-        sa.Column("is_admin", sa.Boolean(), nullable=False),
+        sa.Column("is_active", sa.Boolean(), server_default="true", nullable=False),
+        sa.Column("is_admin", sa.Boolean(), server_default="false", nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.PrimaryKeyConstraint("id"),

@@ -67,6 +67,7 @@ async def get_current_admin(
     return current_user
 
 
+# Избыточно, если исправить параметры в хэндлере
 def get_book_query_params(
     limit: int = Query(default=10, ge=1, le=100, description="Number of books per page"),
     offset: int = Query(default=0, ge=0, description="Skip the first N books"),

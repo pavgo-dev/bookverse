@@ -17,8 +17,8 @@ class UserOrm(Base):
     email: Mapped[str] = mapped_column(String(150), unique=True, index=True)
     hashed_password: Mapped[str] = mapped_column(String(128))
     full_name: Mapped[str] = mapped_column(String(128))
-    is_active: Mapped[bool] = mapped_column(default=True)
-    is_admin: Mapped[bool] = mapped_column(default=False)
+    is_active: Mapped[bool] = mapped_column(default=True, server_default="true")
+    is_admin: Mapped[bool] = mapped_column(default=False, server_default="false")
     created_at: Mapped[time_mark]
     updated_at: Mapped[update_time_mark]
 

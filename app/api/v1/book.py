@@ -23,7 +23,7 @@ async def get_books(
 
 
 @router.get("/{book_id}", response_model=BookDetailResponse)
-async def get_book(book_id: uuid.UUID, session: AsyncSession = Depends(get_async_session)):
+async def get_detail_book(book_id: uuid.UUID, session: AsyncSession = Depends(get_async_session)):
     return await book_service.get_book(book_id, session)
 
 
@@ -34,3 +34,8 @@ async def add_book(
     session: AsyncSession = Depends(get_async_session),
 ):
     return await book_service.create_book(book_data, session)
+
+
+# PUT /books/{book_id} (админ) – обновление данных книги.
+
+# DELETE /books/{book_id} (админ) – удаление книги (каскадно удаляет связанные отзывы и избранное).
