@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_async_session
 from app.dependencies import get_book_query_params, get_current_admin
 from app.models.user import UserOrm
-from app.schemas.book import BookDetailResponse, BookListResponse, BookQueryParams, BookResponse, CreateBook
+from app.schemas.book import BookDetailResponse, BookListResponse, BookQueryParams, BookResponse, CreateBook, UpdateBook
 from app.service import book as book_service
 
 router = APIRouter()
@@ -36,6 +36,20 @@ async def add_book(
     return await book_service.create_book(book_data, session)
 
 
-# PUT /books/{book_id} (админ) – обновление данных книги.
+@router.patch("/{book_id}", response_model=BookResponse, status_code=status.HTTP_200_OK)
+async def update_book(
+    book_id: uuid.UUID,
+    book_data: UpdateBook,
+    current_user: UserOrm = Depends(get_current_admin),
+    session: AsyncSession = Depends(get_async_session),
+):
+    return await book_service.update_book(book_id, book_data, session)
 
-# DELETE /books/{book_id} (админ) – удаление книги (каскадно удаляет связанные отзывы и избранное).
+
+@router.delete("/{book_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_book(
+    book_id: uuid.UUID,
+    current_user: UserOrm = Depends(get_current_admin),
+    session: AsyncSession = Depends(get_async_session),
+):
+    return await book_service.delete_book(book_id, session)

@@ -6,6 +6,7 @@ import pytest
 from alembic import command
 from alembic.config import Config
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.event import listens_for
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
@@ -27,7 +28,7 @@ def pytest_asyncio_loop_factories():
 
         # Возвращаем СЛОВАРЬ, где ключ — любое имя, а значение — функция создания цикла
         return {"selector_loop": lambda: asyncio.SelectorEventLoop(selectors.SelectSelector())}
-    return {}
+    return None
 
 
 # 1. Создаю и удаляю таблицы единожды за весь запуск тестов через миграции Alembic
@@ -36,8 +37,6 @@ async def setup_db():
     alembic_cfg = Config("alembic.ini")
     alembic_cfg.set_main_option("script_location", "migrations")
 
-    # ЛЕГАЛЬНЫЙ СПОСОБ: Передаем параметры через официальный словарь attributes.
-    # На это гарантированно не будут ругаться линтеры!
     alembic_cfg.attributes["test_db_url"] = settings.TESTDATABASE_URL_psycopg
 
     await asyncio.to_thread(command.upgrade, alembic_cfg, "head")
@@ -47,15 +46,35 @@ async def setup_db():
 
 
 # 2. Главная фикстура, которая держит транзакцию для всего теста
+# @pytest.fixture
+# async def db_session() -> AsyncGenerator[AsyncSession, None]:
+
+#     async with (
+#         test_engine.connect() as connection,
+#         test_async_session(bind=connection) as session,
+#         session.begin(),
+#     ):
+#         yield session
+
+
+# 2. Главная фикстура, которая держит транзакцию для всего теста
 @pytest.fixture
 async def db_session() -> AsyncGenerator[AsyncSession, None]:
-
     async with (
         test_engine.connect() as connection,
         test_async_session(bind=connection) as session,
-        session.begin(),
     ):
+        trans = await connection.begin()
+        await session.begin_nested()
+
+        @listens_for(session.sync_session, "after_transaction_end")
+        def _(sess, transaction):
+            if transaction.nested and not transaction._parent.nested:
+                session.sync_session.begin_nested()
+
         yield session
+
+        await trans.rollback()
 
 
 # 3. Переопределить зависимость FastAPI, используя ту же фикстуру db_session

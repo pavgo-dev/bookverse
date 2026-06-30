@@ -23,5 +23,5 @@ class BookOrm(Base):
     created_at: Mapped[time_mark]
     updated_at: Mapped[update_time_mark]
 
-    favorites: Mapped[list["FavoriteOrm"]] = relationship(back_populates="book")
-    reviews: Mapped[list["ReviewOrm"]] = relationship(back_populates="book")
+    favorites: Mapped[list["FavoriteOrm"]] = relationship(back_populates="book", cascade="all, delete-orphan")
+    reviews: Mapped[list["ReviewOrm"]] = relationship(back_populates="book", cascade="all, delete-orphan")

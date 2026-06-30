@@ -39,6 +39,36 @@ class CreateBook(BookBase):
         return cleaned
 
 
+class UpdateBook(BaseModel):
+    title: str | None = Field(default=None, min_length=1, max_length=250)
+    author: str | None = Field(default=None, min_length=1, max_length=150)
+    published_year: int | None = Field(default=None, ge=0)
+    isbn: str | None = Field(default=None, min_length=10, max_length=22)
+    description: str | None = None
+    cover_image_url: str | None = Field(
+        default=None, max_length=500
+    )  # можно использовать HttpUrl, если ссылки будут не на локальный сервер
+
+    @field_validator("published_year")
+    @classmethod
+    def validate_year(cls, v: int | None) -> int | None:
+        if v is not None:
+            current_year = datetime.now().year
+            if v > current_year:
+                raise ValueError(f"Published year cannot be in the future. Current year is {current_year}")
+        return v
+
+    @field_validator("isbn")
+    @classmethod
+    def clean_and_validate_isbn(cls, v: str | None) -> str | None:
+        if v is not None:
+            cleaned = re.sub(r"[^0-9X]", "", v.upper())
+            if len(cleaned) not in (10, 13):
+                raise ValueError("ISBN is incorrect")
+            return cleaned
+        return v
+
+
 class BookResponse(BookBase):
     model_config = ConfigDict(from_attributes=True)
 

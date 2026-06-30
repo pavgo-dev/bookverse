@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.book import BookOrm
 from app.repository import book as book_repository
-from app.schemas.book import BookDetailResponse, BookQueryParams, CreateBook
+from app.schemas.book import BookDetailResponse, BookQueryParams, CreateBook, UpdateBook
 
 
 async def get_all_books(query: BookQueryParams, session: AsyncSession) -> dict:
@@ -36,3 +36,39 @@ async def create_book(book_data: CreateBook, session: AsyncSession) -> BookOrm:
     await session.refresh(new_book)
 
     return new_book
+
+
+async def update_book(book_id: uuid.UUID, book_data: UpdateBook, session: AsyncSession) -> BookOrm:
+    book = await book_repository.get_book_by_id(session, book_id)
+
+    if book is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+
+    update_data = book_data.model_dump(exclude_unset=True)
+
+    if "isbn" in update_data:
+        new_isbn = update_data["isbn"]
+        existing_book = await book_repository.get_book_by_isbn(session, new_isbn)
+
+        if existing_book and existing_book.id != book_id:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Book with isbn: '{new_isbn}' already exists",
+            )
+
+    for key, value in update_data.items():
+        setattr(book, key, value)
+
+    await session.commit()
+    await session.refresh(book)
+
+    return book
+
+
+async def delete_book(book_id: uuid.UUID, session: AsyncSession) -> None:
+    book = await book_repository.get_book_by_id(session, book_id)
+    if book is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+
+    await session.delete(book)
+    await session.commit()
