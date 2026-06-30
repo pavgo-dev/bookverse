@@ -21,7 +21,6 @@ async def get_user_favorites(
     session: AsyncSession, user_id: uuid.UUID, params: FavoriteQueryParams
 ) -> tuple[Sequence[BookOrm], int]:
     query = select(BookOrm).join(FavoriteOrm, BookOrm.id == FavoriteOrm.book_id).where(FavoriteOrm.user_id == user_id)
-
     count_query = query.with_only_columns(func.count(BookOrm.id)).order_by(None)
 
     query = query.order_by(asc(BookOrm.id)).limit(params.limit).offset(params.offset)
