@@ -2,7 +2,7 @@ import pytest
 from httpx import AsyncClient
 
 
-async def test_register_user_success(client: AsyncClient, user_data: dict):
+async def test_success(client: AsyncClient, user_data: dict):
     response = await client.post("/api/v1/auth/register", json=user_data)
 
     assert response.status_code == 201
@@ -13,7 +13,7 @@ async def test_register_user_success(client: AsyncClient, user_data: dict):
     assert data["is_admin"] is False
 
 
-async def test_register_user_duplicate_email(client: AsyncClient, user_data: dict):
+async def test_duplicate_email(client: AsyncClient, user_data: dict):
     await client.post("/api/v1/auth/register", json=user_data)
 
     response = await client.post("/api/v1/auth/register", json=user_data)
@@ -32,9 +32,7 @@ async def test_register_user_duplicate_email(client: AsyncClient, user_data: dic
         ("password", "Sh1", "Value should have at least 8 items"),
     ],
 )
-async def test_register_validation_errors(
-    client: AsyncClient, user_data: dict, field_to_update, new_value, expected_error
-):
+async def test_validation_errors(client: AsyncClient, user_data: dict, field_to_update, new_value, expected_error):
     invalid_data = user_data.copy()
     invalid_data[field_to_update] = new_value
 

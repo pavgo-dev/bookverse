@@ -1,7 +1,7 @@
 from httpx import AsyncClient
 
 
-async def test_update_profile_success(client: AsyncClient, user_data: dict):
+async def test_success(client: AsyncClient, user_data: dict):
     await client.post("/api/v1/auth/register", json=user_data)
 
     login_data = {"email": user_data["email"], "password": user_data["password"]}
@@ -17,7 +17,7 @@ async def test_update_profile_success(client: AsyncClient, user_data: dict):
     assert data["full_name"] == "John Doe Junior"
 
 
-async def test_update_profile_email_conflict(client: AsyncClient, user_data: dict):
+async def test_email_conflict(client: AsyncClient, user_data: dict):
     await client.post("/api/v1/auth/register", json=user_data)
 
     # Заменил email, что бы не делать линшюю фикстуру

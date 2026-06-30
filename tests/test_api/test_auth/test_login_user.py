@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.user import UserOrm
 
 
-async def test_login_user_success(client: AsyncClient, user_data: dict):
+async def test_success(client: AsyncClient, user_data: dict):
     await client.post("/api/v1/auth/register", json=user_data)
 
     login_data = {"email": user_data["email"], "password": user_data["password"]}
@@ -17,7 +17,7 @@ async def test_login_user_success(client: AsyncClient, user_data: dict):
     assert data["token_type"] == "bearer"
 
 
-async def test_login_wrong_credentials(client: AsyncClient, user_data: dict):
+async def test_wrong_credentials(client: AsyncClient, user_data: dict):
     await client.post("/api/v1/auth/register", json=user_data)
 
     wrong_login = {"email": user_data["email"], "password": "WrongPassword123"}
@@ -27,7 +27,7 @@ async def test_login_wrong_credentials(client: AsyncClient, user_data: dict):
     assert "not correct" in response.json()["detail"]
 
 
-async def test_banned_user_cannot_login(client: AsyncClient, db_session: AsyncSession, user_data: dict):
+async def test_banned(client: AsyncClient, db_session: AsyncSession, user_data: dict):
     await client.post("/api/v1/auth/register", json=user_data)
 
     query = select(UserOrm).where(UserOrm.email == user_data["email"])

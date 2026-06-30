@@ -1,7 +1,7 @@
 from httpx import AsyncClient
 
 
-async def test_create_book_success(client: AsyncClient):
+async def test_success(client: AsyncClient):
     book_data = {
         "title": "Design Patterns",
         "author": "Erich Gamma",
@@ -21,7 +21,7 @@ async def test_create_book_success(client: AsyncClient):
     assert data["isbn"] == book_data["isbn"]
 
 
-async def test_create_book_conflict_isbn(client: AsyncClient, sample_books):
+async def test_conflict_isbn(client: AsyncClient, sample_books):
     existing_isbn = sample_books[0].isbn
 
     duplicate_data = {

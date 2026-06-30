@@ -2,7 +2,7 @@ from httpx import AsyncClient
 from uuid_utils.compat import uuid7
 
 
-async def test_get_book_detail_success(client: AsyncClient, sample_books):
+async def test_success(client: AsyncClient, sample_books):
     target_book = sample_books[0]
 
     response = await client.get(f"/api/v1/books/{target_book.id}")
@@ -18,7 +18,7 @@ async def test_get_book_detail_success(client: AsyncClient, sample_books):
     assert data["last_reviews"] == []
 
 
-async def test_get_book_detail_not_found(client: AsyncClient, sample_books):
+async def test_not_found(client: AsyncClient, sample_books):
     random_id = uuid7()
 
     response = await client.get(f"/api/v1/books/{random_id}")
@@ -27,7 +27,7 @@ async def test_get_book_detail_not_found(client: AsyncClient, sample_books):
     assert response.json()["detail"] == "Book not found"
 
 
-async def test_get_book_detail_with_reviews_metrics(client: AsyncClient, sample_books, sample_reviews):
+async def test_with_reviews_metrics(client: AsyncClient, sample_books, sample_reviews):
     target_book = sample_books[0]
 
     response = await client.get(f"/api/v1/books/{target_book.id}")

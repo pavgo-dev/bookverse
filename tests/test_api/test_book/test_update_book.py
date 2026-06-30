@@ -2,7 +2,7 @@ from httpx import AsyncClient
 from uuid_utils.compat import uuid7
 
 
-async def test_update_book_partial_success(client: AsyncClient, sample_books):
+async def test_success(client: AsyncClient, sample_books):
     target_book = sample_books[0]
     update_data = {"title": "Super New FastAPI Title", "published_year": 2025}
 
@@ -16,7 +16,7 @@ async def test_update_book_partial_success(client: AsyncClient, sample_books):
     assert data["author"] == target_book.author
 
 
-async def test_update_book_with_isbn_cleaning_success(client: AsyncClient, sample_books):
+async def test_isbn_cleaning_success(client: AsyncClient, sample_books):
     target_book = sample_books[0]
     update_data = {"isbn": "978-5-97060-999-9"}
 
@@ -28,7 +28,7 @@ async def test_update_book_with_isbn_cleaning_success(client: AsyncClient, sampl
     assert data["isbn"] == "9785970609999"
 
 
-async def test_update_book_not_found(client: AsyncClient, sample_books):
+async def test_not_found(client: AsyncClient, sample_books):
     random_id = uuid7()
     update_data = {"title": "New Title"}
 
@@ -38,7 +38,7 @@ async def test_update_book_not_found(client: AsyncClient, sample_books):
     assert response.json()["detail"] == "Book not found"
 
 
-async def test_update_book_isbn_conflict(client: AsyncClient, sample_books):
+async def test_isbn_conflict(client: AsyncClient, sample_books):
     book_to_update = sample_books[0]
     other_book = sample_books[1]
 
@@ -50,7 +50,7 @@ async def test_update_book_isbn_conflict(client: AsyncClient, sample_books):
     assert "already exists" in response.json()["detail"]
 
 
-async def test_update_book_self_isbn(client: AsyncClient, sample_books):
+async def test_self_isbn(client: AsyncClient, sample_books):
     target_book = sample_books[0]
     update_data = {
         "title": "Just updated title",

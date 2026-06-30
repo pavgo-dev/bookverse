@@ -1,7 +1,7 @@
 from httpx import AsyncClient
 
 
-async def test_delete_user_success(client: AsyncClient, user_data: dict):
+async def test_success(client: AsyncClient, user_data: dict):
     await client.post("/api/v1/auth/register", json=user_data)
 
     login_data = {"email": user_data["email"], "password": user_data["password"]}

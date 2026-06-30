@@ -1,7 +1,7 @@
 from httpx import AsyncClient
 
 
-async def test_update_password_success(client: AsyncClient, user_data: dict):
+async def test_success(client: AsyncClient, user_data: dict):
     await client.post("/api/v1/auth/register", json=user_data)
 
     login_data = {"email": user_data["email"], "password": user_data["password"]}
@@ -26,7 +26,7 @@ async def test_update_password_success(client: AsyncClient, user_data: dict):
     assert good_login_res.status_code == 200
 
 
-async def test_update_password_incorrect_old(client: AsyncClient, user_data: dict):
+async def test_incorrect_oldpassword(client: AsyncClient, user_data: dict):
     await client.post("/api/v1/auth/register", json=user_data)
     login_res = await client.post(
         "/api/v1/auth/login", json={"email": user_data["email"], "password": user_data["password"]}

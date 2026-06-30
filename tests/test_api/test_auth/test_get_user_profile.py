@@ -1,7 +1,7 @@
 from httpx import AsyncClient
 
 
-async def test_get_user_profile_success(client: AsyncClient, user_data: dict):
+async def test_success(client: AsyncClient, user_data: dict):
     await client.post("/api/v1/auth/register", json=user_data)
 
     login_data = {"email": user_data["email"], "password": user_data["password"]}
@@ -17,7 +17,7 @@ async def test_get_user_profile_success(client: AsyncClient, user_data: dict):
     assert data["full_name"] == "Alex Doe"
 
 
-async def test_get_user_profile_unauthorized(client: AsyncClient):
+async def test_unauthorized(client: AsyncClient):
     response = await client.get("/api/v1/auth/me")
 
     assert response.status_code == 401
