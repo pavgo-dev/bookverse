@@ -21,11 +21,8 @@ async def create_review(
     if review:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="You have already left a review for this book")
 
-    new_review = ReviewOrm(
-        user_id=current_user.id, book_id=book_id, rating=review_data.rating, comment=review_data.comment
-    )
+    new_review = await review_repository.add_review(session, book_id, review_data, current_user)
 
-    session.add(new_review)
     await session.commit()
     await session.refresh(new_review, attribute_names=["user"])
 
@@ -46,12 +43,10 @@ async def update_review(
         )
 
     update_data = review_data.model_dump(exclude_unset=True)
-
-    for key, value in update_data.items():
-        setattr(review, key, value)
+    await review_repository.update_review(session, review, update_data)
 
     await session.commit()
-    await session.refresh(review)
+    await session.refresh(review, attribute_names=["user"])
 
     return review
 
@@ -79,5 +74,5 @@ async def delete_review(review_id: uuid.UUID, current_user: UserOrm, session: As
             status_code=status.HTTP_403_FORBIDDEN, detail="You do not have permission to delete this review"
         )
 
-    await session.delete(review)
+    await review_repository.delete_review(session, review)
     await session.commit()

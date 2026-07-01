@@ -7,7 +7,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app.models.review import ReviewOrm
-from app.schemas.review import ReviewQueryParams
+from app.models.user import UserOrm
+from app.schemas.review import CreateReview, ReviewQueryParams
 
 
 async def get_review(session: AsyncSession, book_id: uuid.UUID, user_id: uuid.UUID) -> ReviewOrm | None:
@@ -27,10 +28,15 @@ async def get_review_by_id(session: AsyncSession, review_id: uuid.UUID) -> Revie
 async def get_book_reviews(
     session: AsyncSession, book_id: uuid.UUID, params: ReviewQueryParams
 ) -> tuple[Sequence[ReviewOrm], int]:
-    query = select(ReviewOrm).where(ReviewOrm.book_id == book_id).options(selectinload(ReviewOrm.user))
+    base_query = select(ReviewOrm).where(ReviewOrm.book_id == book_id)
 
-    count_query = query.with_only_columns(func.count(ReviewOrm.id)).order_by(None)
-    query = query.order_by(desc(ReviewOrm.created_at), asc(ReviewOrm.id)).limit(params.limit).offset(params.offset)
+    count_query = select(func.count()).select_from(base_query.subquery())
+    query = (
+        base_query.options(selectinload(ReviewOrm.user))
+        .order_by(desc(ReviewOrm.created_at), asc(ReviewOrm.id))
+        .limit(params.limit)
+        .offset(params.offset)
+    )
 
     count_task = session.execute(count_query)
     reviews_task = session.execute(query)
@@ -40,3 +46,29 @@ async def get_book_reviews(
     reviews = result.scalars().all()
 
     return reviews, total
+
+
+async def add_review(
+    session: AsyncSession, book_id: uuid.UUID, review_data: CreateReview, current_user: UserOrm
+) -> ReviewOrm:
+    review_fields = review_data.model_dump()
+    review_fields.update({"user_id": current_user.id, "book_id": book_id})
+
+    new_review = ReviewOrm(**review_fields)
+    session.add(new_review)
+    await session.flush()
+
+    return new_review
+
+
+async def update_review(session: AsyncSession, review: ReviewOrm, update_data: dict) -> ReviewOrm:
+    for key, value in update_data.items():
+        setattr(review, key, value)
+
+    await session.flush()
+    return review
+
+
+async def delete_review(session: AsyncSession, review: ReviewOrm) -> None:
+    await session.delete(review)
+    await session.flush()

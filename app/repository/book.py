@@ -9,35 +9,36 @@ from sqlalchemy.orm.interfaces import ORMOption
 
 from app.models.book import BookOrm
 from app.models.review import ReviewOrm
-from app.schemas.book import BookQueryParams
+from app.schemas.book import BookQueryParams, CreateBook
 
 
 async def get_books_advanced(session: AsyncSession, params: BookQueryParams) -> tuple[Sequence[BookOrm], int]:
-    query = select(BookOrm)
+    base_query = select(BookOrm)
 
     if params.title:
-        query = query.where(BookOrm.title.contains(params.title))
+        base_query = base_query.where(BookOrm.title.ilike(f"%{params.title}%"))
     if params.author:
-        query = query.where(BookOrm.author.contains(params.author))
+        base_query = base_query.where(BookOrm.author.ilike(f"%{params.author}%"))
 
     if params.year_min is not None and params.year_max is not None:
-        query = query.where(BookOrm.published_year.between(params.year_min, params.year_max))
+        base_query = base_query.where(BookOrm.published_year.between(params.year_min, params.year_max))
     elif params.year_min is not None:
-        query = query.where(BookOrm.published_year >= params.year_min)
+        base_query = base_query.where(BookOrm.published_year >= params.year_min)
     elif params.year_max is not None:
-        query = query.where(BookOrm.published_year <= params.year_max)
+        base_query = base_query.where(BookOrm.published_year <= params.year_max)
 
-    count_query = query.with_only_columns(func.count(BookOrm.id)).order_by(None)
+    count_query = select(func.count()).select_from(base_query.subquery())
 
     main_column = getattr(BookOrm, params.sort_by)
     sort_order = desc(main_column) if params.order == "desc" else asc(main_column)
-    query = query.order_by(sort_order, asc(BookOrm.id))
 
+    query = base_query.order_by(sort_order, asc(BookOrm.id))
     query = query.limit(params.limit).offset(params.offset)
 
     count_task = session.execute(count_query)
     books_task = session.execute(query)
     count_result, result = await asyncio.gather(count_task, books_task)
+
     total = count_result.scalar_one()
     books = result.scalars().all()
 
@@ -62,44 +63,66 @@ async def get_book_by_id(
 
 
 async def get_book_detail(session: AsyncSession, book_id: uuid.UUID) -> dict | None:
-    review_options = [
-        selectinload(
-            BookOrm.reviews.and_(
-                ReviewOrm.id.in_(
-                    select(ReviewOrm.id)
-                    .where(ReviewOrm.book_id == book_id)
-                    .order_by(desc(ReviewOrm.created_at))
-                    .limit(5)
-                )
-            )
-        ).selectinload(ReviewOrm.user)
-    ]
-    book_task = get_book_by_id(session, book_id, options=review_options)
+    book_metrics_query = (
+        select(
+            BookOrm,
+            func.coalesce(func.avg(ReviewOrm.rating), 0.0).label("avg_rating"),
+            func.count(ReviewOrm.id).label("reviews_qty"),
+        )
+        .outerjoin(ReviewOrm, BookOrm.id == ReviewOrm.book_id)
+        .where(BookOrm.id == book_id)
+        .group_by(BookOrm.id)
+    )
 
-    metrics_query = select(
-        func.coalesce(func.avg(ReviewOrm.rating), 0.0).label("avg_rating"),
-        func.count(ReviewOrm.id).label("reviews_qty"),
-    ).where(ReviewOrm.book_id == book_id)
-    metrics_task = session.execute(metrics_query)
+    reviews_query = (
+        select(ReviewOrm)
+        .where(ReviewOrm.book_id == book_id)
+        .options(selectinload(ReviewOrm.user))
+        .order_by(desc(ReviewOrm.created_at), desc(ReviewOrm.id))
+        .limit(5)
+    )
 
-    book, metrics_res = await asyncio.gather(book_task, metrics_task)
+    metrics_task = session.execute(book_metrics_query)
+    reviews_task = session.execute(reviews_query)
+    metrics_res, reviews_res = await asyncio.gather(metrics_task, reviews_task)
 
-    if not book:
+    row = metrics_res.first()
+    if not row:
         return None
+    book, avg_rating, reviews_qty = row
+    formatted_avg_rating = round(float(avg_rating), 2)
 
-    avg_rating, reviews_qty = metrics_res.one()
+    last_reviews = reviews_res.scalars().all()
 
-    return {
-        "id": book.id,
-        "title": book.title,
-        "author": book.author,
-        "published_year": book.published_year,
-        "isbn": book.isbn,
-        "description": book.description,
-        "cover_image_url": book.cover_image_url,
-        "created_at": book.created_at,
-        "updated_at": book.updated_at,
-        "avg_rating": round(float(avg_rating), 2),
-        "reviews_qty": reviews_qty,
-        "last_reviews": book.reviews,
-    }
+    book_dict = {c.name: getattr(book, c.name) for c in book.__table__.columns}
+    book_dict.update(
+        {
+            "avg_rating": formatted_avg_rating,
+            "reviews_qty": reviews_qty,
+            "last_reviews": last_reviews,
+        }
+    )
+
+    return book_dict
+
+
+async def create_book(session: AsyncSession, book_data: CreateBook) -> BookOrm:
+    new_book = BookOrm(**book_data.model_dump())
+
+    session.add(new_book)
+    await session.flush()
+
+    return new_book
+
+
+async def update_book(session: AsyncSession, book: BookOrm, update_data: dict) -> BookOrm:
+    for key, value in update_data.items():
+        setattr(book, key, value)
+
+    await session.flush()
+    return book
+
+
+async def delete_book(session: AsyncSession, book: BookOrm) -> None:
+    await session.delete(book)
+    await session.flush()

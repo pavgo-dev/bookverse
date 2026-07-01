@@ -13,7 +13,6 @@ from app.utils import hash_password, verify_password
 
 async def create_user(user_data: CreateUser, session: AsyncSession) -> UserOrm:
     existing_user = await user_repository.get_user_by_email(session, user_data.email)
-
     if existing_user:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
@@ -24,13 +23,7 @@ async def create_user(user_data: CreateUser, session: AsyncSession) -> UserOrm:
         hash_password, user_data.password.get_secret_value()
     )  # Синнхронная функция через to_thread, подсмотрел фишку, нужно проверить
 
-    new_user = UserOrm(
-        email=user_data.email,
-        full_name=user_data.full_name,
-        hashed_password=hashed_pass,
-    )
-
-    session.add(new_user)
+    new_user = await user_repository.add_user(session, user_data, hashed_pass)
     await session.commit()
     await session.refresh(new_user)
 
@@ -40,21 +33,20 @@ async def create_user(user_data: CreateUser, session: AsyncSession) -> UserOrm:
 async def login_user(login_data: UserLogin, session: AsyncSession) -> TokenResponse:
     user = await user_repository.get_user_by_email(session, login_data.email)
 
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Password or email is not correct",
+    )  # Одниаковая ошибка, от брутфорса
+
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Password or email is not correct",  # Добавил пароль от брутфорс
-        )
+        raise credentials_exception
 
     is_password_correct = await asyncio.to_thread(
         verify_password, login_data.password.get_secret_value(), user.hashed_password
     )  # Судя по всему нужно отказаться от keyword аргументов и использовать позиционные
 
     if not is_password_correct:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Password or email is not correct",  # Добавил email брутфорс защита
-        )
+        raise credentials_exception
 
     if not user.is_active:
         raise HTTPException(
@@ -69,17 +61,22 @@ async def login_user(login_data: UserLogin, session: AsyncSession) -> TokenRespo
 
 
 async def update_user(data: UserProfileUpdate, current_user: UserOrm, session: AsyncSession) -> UserOrm:
-    if data.email and data.email != current_user.email:
-        email_owner = await user_repository.get_user_by_email(session, data.email)
+    update_data = data.model_dump(exclude_unset=True)
+    if "full_name" in update_data and update_data["full_name"] == current_user.full_name:
+        update_data.pop("full_name")
+    if "email" in update_data and update_data["email"] == current_user.email:
+        update_data.pop("email")
+    if not update_data:
+        return current_user
+
+    if "email" in update_data:
+        email_owner = await user_repository.get_user_by_email(session, update_data["email"])
         if email_owner:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"User with {data.email} already exists")
-        else:
-            current_user.email = data.email
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT, detail=f"User with {update_data['email']} already exists"
+            )
 
-    if data.full_name and data.full_name != current_user.full_name:
-        current_user.full_name = data.full_name
-
-    session.add(current_user)
+    await user_repository.update_user_attributes(session, current_user, update_data)
     await session.commit()
     await session.refresh(current_user)
 
@@ -94,12 +91,13 @@ async def update_password(data: UserPasswordUpdate, current_user: UserOrm, sessi
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Incorrect old password")
 
     hashed_pass = await asyncio.to_thread(hash_password, data.new_password.get_secret_value())
-    current_user.hashed_password = hashed_pass
+
+    await user_repository.update_user_attributes(session, current_user, {"hashed_password": hashed_pass})
     await session.commit()
 
     return None
 
 
 async def delete_user(current_user: UserOrm, session: AsyncSession) -> None:
-    await session.delete(current_user)
+    await user_repository.delete_user(session, current_user)
     await session.commit()

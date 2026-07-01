@@ -13,7 +13,7 @@ from app.service import favorite as favorite_service
 router = APIRouter()
 
 
-@router.post("/{book_id}", status_code=status.HTTP_200_OK, response_model=FavoriteResponse)
+@router.post("/{book_id}", status_code=status.HTTP_201_CREATED, response_model=FavoriteResponse)
 async def add_favorite(
     book_id: uuid.UUID,
     current_user: UserOrm = Depends(get_current_user),

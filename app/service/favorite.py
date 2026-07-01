@@ -23,9 +23,9 @@ async def add_to_favorite(book_id: uuid.UUID, current_user: UserOrm, session: As
     if existing_favor:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This book is already in your favorites")
 
-    new_favor = FavoriteOrm(book_id=book_id, user_id=current_user.id)
-    session.add(new_favor)
+    new_favor = await favorite_repository.add_favor(session, book_id, current_user)
     await session.commit()
+    # await session.refresh(new_favor, attribute_names=["book"])
 
     return new_favor
 
@@ -39,11 +39,12 @@ async def delete_from_favorite(book_id: uuid.UUID, current_user: UserOrm, sessio
     if favor is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="This book is not in your favorites")
 
-    await session.delete(favor)
+    await favorite_repository.delete_favorite(session, favor)
     await session.commit()
 
 
 async def get_all_favorites(query: FavoriteQueryParams, user_id: uuid.UUID, session: AsyncSession) -> dict:
-    books, total = await favorite_repository.get_user_favorites(session, user_id, query)
+    favorites, total = await favorite_repository.get_user_favorites(session, user_id, query)
+    books = [favor.book for favor in favorites]
 
     return {"total": total, "books": books}

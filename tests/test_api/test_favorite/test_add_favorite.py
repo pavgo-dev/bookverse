@@ -7,7 +7,7 @@ async def test_success(client: AsyncClient, sample_books, mock_user):
 
     response = await client.post(f"/api/v1/favorites/{target_book.id}")
 
-    assert response.status_code == 200
+    assert response.status_code == 201
     data = response.json()
 
     assert data["book_id"] == str(target_book.id)
