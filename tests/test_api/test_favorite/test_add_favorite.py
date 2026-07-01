@@ -32,4 +32,4 @@ async def test_book_not_found(client: AsyncClient):
     response = await client.post(f"/api/v1/favorites/{random_id}")
 
     assert response.status_code == 404
-    assert "Book not found" in response.json()["detail"]
+    assert f"Book with id {random_id} not found" in response.json()["detail"]

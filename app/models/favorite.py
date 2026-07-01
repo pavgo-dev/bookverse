@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import ForeignKey
+from sqlalchemy import ForeignKey, Index
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base, time_mark, uuid_fk
@@ -12,6 +12,7 @@ if TYPE_CHECKING:
 
 class FavoriteOrm(Base):
     __tablename__ = "favorites"
+    __table_args__ = (Index("idx_favorites_user_id_added_at", "user_id", "added_at"),)
 
     user_id: Mapped[uuid_fk] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
     book_id: Mapped[uuid_fk] = mapped_column(ForeignKey("books.id", ondelete="CASCADE"), primary_key=True)

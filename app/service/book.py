@@ -17,7 +17,7 @@ async def get_all_books(query: BookQueryParams, session: AsyncSession) -> dict:
 async def get_book(book_id: uuid.UUID, session: AsyncSession) -> BookDetailResponse:
     book_data = await book_repository.get_book_detail(session, book_id)
     if book_data is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Book with id {book_id} not found")
 
     return BookDetailResponse.model_validate(book_data)
 
@@ -42,7 +42,7 @@ async def update_book(book_id: uuid.UUID, book_data: UpdateBook, session: AsyncS
     book = await book_repository.get_book_by_id(session, book_id)
 
     if book is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Book with id {book_id} not found")
 
     update_data = book_data.model_dump(exclude_unset=True)
 
@@ -68,7 +68,7 @@ async def update_book(book_id: uuid.UUID, book_data: UpdateBook, session: AsyncS
 async def delete_book(book_id: uuid.UUID, session: AsyncSession) -> None:
     book = await book_repository.get_book_by_id(session, book_id)
     if book is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Book with id {book_id} not found")
 
     await session.delete(book)
     await session.commit()

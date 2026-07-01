@@ -2,7 +2,7 @@ import asyncio
 import uuid
 from collections.abc import Sequence
 
-from sqlalchemy import asc, func, select
+from sqlalchemy import asc, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -30,7 +30,7 @@ async def get_book_reviews(
     query = select(ReviewOrm).where(ReviewOrm.book_id == book_id).options(selectinload(ReviewOrm.user))
 
     count_query = query.with_only_columns(func.count(ReviewOrm.id)).order_by(None)
-    query = query.order_by(asc(ReviewOrm.id)).limit(params.limit).offset(params.offset)
+    query = query.order_by(desc(ReviewOrm.created_at), asc(ReviewOrm.id)).limit(params.limit).offset(params.offset)
 
     count_task = session.execute(count_query)
     reviews_task = session.execute(query)

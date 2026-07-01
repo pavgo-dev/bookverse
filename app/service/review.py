@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.review import ReviewOrm
 from app.models.user import UserOrm
+from app.repository import book as book_repository
 from app.repository import review as review_repository
 from app.schemas.review import CreateReview, ReviewQueryParams, UpdateReview
 
@@ -12,6 +13,10 @@ from app.schemas.review import CreateReview, ReviewQueryParams, UpdateReview
 async def create_review(
     book_id: uuid.UUID, review_data: CreateReview, current_user: UserOrm, session: AsyncSession
 ) -> ReviewOrm:
+    book = await book_repository.get_book_by_id(session, book_id)
+    if book is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Book with id {book_id} not found")
+
     review = await review_repository.get_review(session, book_id=book_id, user_id=current_user.id)
     if review:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="You have already left a review for this book")
@@ -32,7 +37,7 @@ async def update_review(
 ) -> ReviewOrm:
     review = await review_repository.get_review_by_id(session, review_id)
     if review is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review is not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Review with id {review_id} not found")
 
     is_author = review.user_id == current_user.id
     if not is_author:
@@ -52,6 +57,10 @@ async def update_review(
 
 
 async def get_book_reviews(query: ReviewQueryParams, book_id: uuid.UUID, session: AsyncSession) -> dict:
+    book = await book_repository.get_book_by_id(session, book_id)
+    if book is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Book with id {book_id} not found")
+
     reviews, total = await review_repository.get_book_reviews(session, book_id, query)
 
     return {"total": total, "reviews": reviews}
@@ -60,7 +69,7 @@ async def get_book_reviews(query: ReviewQueryParams, book_id: uuid.UUID, session
 async def delete_review(review_id: uuid.UUID, current_user: UserOrm, session: AsyncSession) -> None:
     review = await review_repository.get_review_by_id(session, review_id)
     if review is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Review is not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Review with id {review_id} not found")
 
     is_author = review.user_id == current_user.id
     is_admin = current_user.is_admin

@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.auth import router as auth_router
 from app.api.v1.book import router as book_router
@@ -11,6 +12,22 @@ app = FastAPI(
     version="0.1.0",
 )
 
+# Настраиваем список разрешенных адресов.
+# Сюда нужно вписать адрес, на котором будет работать сайт (фронтенд)
+origins = [
+    "http://localhost:3000",  # Стандартный порт для React / Next.js
+    "http://localhost:5173",  # Стандартный порт для Vite / Vue
+    "http://127.0.0.1:3000",
+]
+
+# Подключаем CORS к приложению
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  # Разрешаем запросы только с этих адресов
+    allow_credentials=True,  # Разрешаем передачу кук и JWT-токенов в headers
+    allow_methods=["*"],  # Разрешаем любые методы (GET, POST, PUT, PATCH, DELETE)
+    allow_headers=["*"],  # Разрешаем любые заголовки
+)
 
 app.include_router(auth_router, prefix="/api/v1/auth", tags=["Auth"])
 app.include_router(book_router, prefix="/api/v1/books", tags=["Books"])
@@ -35,5 +52,4 @@ async def root():
 # 1. Реализовать refresh token и его обновление
 # 2. Добавить кеширование списка книг (например, с помощью Redis) – инвалидация при добавлении/изменении книги
 # 3. Добавить эндпоинт для сброса пароля через email (отправка ссылки)
-# 4. Написать интеграционные тесты с реальной БД в контейнере
-# 5. Добавить административную панель (например, через FastAPI admin или просто несколько админских эндпоинтов для управления пользователями)
+# 4. Добавить административную панель (например, через FastAPI admin или просто несколько админских эндпоинтов для управления пользователями)

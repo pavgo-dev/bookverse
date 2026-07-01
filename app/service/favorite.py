@@ -13,7 +13,7 @@ from app.schemas.favorite import FavoriteQueryParams
 async def add_to_favorite(book_id: uuid.UUID, current_user: UserOrm, session: AsyncSession) -> FavoriteOrm:
     book = await book_repository.get_book_by_id(session, book_id)
     if book is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Book with id {book_id} not found")
 
     existing_favor = await favorite_repository.get_favorite(
         session=session,
@@ -33,7 +33,7 @@ async def add_to_favorite(book_id: uuid.UUID, current_user: UserOrm, session: As
 async def delete_from_favorite(book_id: uuid.UUID, current_user: UserOrm, session: AsyncSession) -> None:
     book = await book_repository.get_book_by_id(session, book_id)
     if book is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Book not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Book with id {book_id} not found")
 
     favor = await favorite_repository.get_favorite(session=session, book_id=book_id, user_id=current_user.id)
     if favor is None:

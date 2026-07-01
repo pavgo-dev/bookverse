@@ -33,10 +33,6 @@ async def update_review(
     return await review_service.update_review(review_id, review_data, current_user, session)
 
 
-# 3
-# Список всех отзывов на книгу с пагинацией
-# Для каждого отзыва показывать имя пользователя, рейтинг, комментарий и дату
-# GET /reviews/{book_id}
 @router.get("/{book_id}", response_model=ReviewListResponse, status_code=status.HTTP_200_OK)
 async def get_book_reviews(
     query: Annotated[ReviewQueryParams, Query()],

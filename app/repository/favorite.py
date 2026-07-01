@@ -2,7 +2,7 @@ import asyncio
 import uuid
 from collections.abc import Sequence
 
-from sqlalchemy import asc, func, select
+from sqlalchemy import asc, desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.book import BookOrm
@@ -23,7 +23,9 @@ async def get_user_favorites(
     query = select(BookOrm).join(FavoriteOrm, BookOrm.id == FavoriteOrm.book_id).where(FavoriteOrm.user_id == user_id)
     count_query = query.with_only_columns(func.count(BookOrm.id)).order_by(None)
 
-    query = query.order_by(asc(BookOrm.id)).limit(params.limit).offset(params.offset)
+    query = (
+        query.order_by(desc(FavoriteOrm.added_at), asc(FavoriteOrm.book_id)).limit(params.limit).offset(params.offset)
+    )
 
     count_task = session.execute(count_query)
     books_task = session.execute(query)

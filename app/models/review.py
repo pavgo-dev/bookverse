@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from sqlalchemy import CheckConstraint, ForeignKey, Integer, Text
+from sqlalchemy import CheckConstraint, ForeignKey, Index, Integer, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base, time_mark, uuid_fk, uuid_pk
@@ -12,7 +12,10 @@ if TYPE_CHECKING:
 
 class ReviewOrm(Base):
     __tablename__ = "reviews"
-    __table_args__ = (CheckConstraint("rating >= 1 AND rating <= 5", name="check_review_rating_range"),)
+    __table_args__ = (
+        CheckConstraint("rating >= 1 AND rating <= 5", name="check_review_rating_range"),
+        Index("idx_reviews_book_id_created_at", "book_id", "created_at"),
+    )
 
     id: Mapped[uuid_pk]
     user_id: Mapped[uuid_fk] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)

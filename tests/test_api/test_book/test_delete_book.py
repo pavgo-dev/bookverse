@@ -18,4 +18,4 @@ async def test_not_found(client: AsyncClient, sample_books):
     response = await client.delete(f"/api/v1/books/{random_id}")
 
     assert response.status_code == 404
-    assert response.json()["detail"] == "Book not found"
+    assert response.json()["detail"] == f"Book with id {random_id} not found"
