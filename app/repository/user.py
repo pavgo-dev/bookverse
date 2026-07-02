@@ -8,14 +8,9 @@ from app.schemas.user import CreateUser
 
 
 async def get_user_by_id(
-    session: AsyncSession, user_id: uuid.UUID | str
-) -> UserOrm | None:  # str для пароля из JWT словаря
-    if isinstance(user_id, str):
-        try:
-            user_id = uuid.UUID(user_id)
-        except ValueError:
-            return None
-
+    session: AsyncSession,
+    user_id: uuid.UUID,
+) -> UserOrm | None:
     query = select(UserOrm).where(UserOrm.id == user_id)
     result = await session.execute(query)
 

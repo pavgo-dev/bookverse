@@ -1,8 +1,8 @@
+import uuid
 from datetime import UTC, datetime, timedelta
-from typing import Literal
 
 import jwt
-from fastapi import Depends, HTTPException, Query, status
+from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -11,7 +11,6 @@ from app.config import settings
 from app.database import get_async_session
 from app.models.user import UserOrm
 from app.repository import user as user_repository
-from app.schemas.book import BookQueryParams
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
@@ -29,14 +28,18 @@ async def get_current_user(
     session: AsyncSession = Depends(get_async_session),
 ) -> UserOrm:
 
+    user_id: uuid.UUID
+
     try:
         payload = jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
-        user_id: str | None = payload.get("sub")
+        user_id_raw: str | None = payload.get("sub")
 
-        if user_id is None:
+        if user_id_raw is None:
             raise exceptions.InvalidTokenException()
 
-    except jwt.PyJWTError:
+        user_id = uuid.UUID(user_id_raw)
+
+    except (jwt.PyJWTError, ValueError):
         raise exceptions.InvalidTokenException() from None
 
     user = await user_repository.get_user_by_id(session, user_id)
@@ -55,5 +58,5 @@ async def get_current_admin(
 ) -> UserOrm:
 
     if not current_user.is_admin:
-        raise exceptions.PermissionException
+        raise exceptions.PermissionException()
     return current_user

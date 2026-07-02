@@ -3,8 +3,9 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from app.dto.book import BookDetailDTO
 from app.schemas.review import ReviewResponse
 
 
@@ -86,6 +87,15 @@ class BookDetailResponse(BookResponse):
     avg_rating: float = Field(default=0.0, ge=0.0, le=5.0, description="Average book rating")
     reviews_qty: int = Field(default=0, ge=0, description="Total number of reviews")
     last_reviews: list[ReviewResponse] = Field(default_factory=list, description="Top 5 latest reviews")
+
+    @model_validator(mode="before")
+    @classmethod
+    def unpack_book_dto(cls, data: BookDetailDTO | dict) -> BookDetailDTO | dict:
+        if isinstance(data, BookDetailDTO):
+            for column in data.book.__table__.columns:
+                setattr(data, column.name, getattr(data.book, column.name))
+
+        return data
 
 
 class BookQueryParams(BaseModel):

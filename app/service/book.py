@@ -3,6 +3,7 @@ import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app import exceptions
+from app.dto.book import BookDetailDTO
 from app.models.book import BookOrm
 from app.repository import book as book_repository
 from app.schemas.book import BookQueryParams, CreateBook, UpdateBook
@@ -14,7 +15,7 @@ async def get_all_books(query: BookQueryParams, session: AsyncSession) -> dict:
     return {"total": total, "books": books}
 
 
-async def get_book(book_id: uuid.UUID, session: AsyncSession) -> dict:
+async def get_book(book_id: uuid.UUID, session: AsyncSession) -> BookDetailDTO:
     book_data = await book_repository.get_book_detail(session, book_id)
     if book_data is None:
         raise exceptions.BookNotFoundException(book_id)
