@@ -35,7 +35,7 @@ async def test_not_found(client: AsyncClient, sample_books):
     response = await client.patch(f"/api/v1/books/{random_id}", json=update_data)
 
     assert response.status_code == 404
-    assert response.json()["detail"] == f"Book with id {random_id} not found"
+    assert response.json()["detail"] == f"The book with ID {random_id} does not exist"
 
 
 async def test_isbn_conflict(client: AsyncClient, sample_books):

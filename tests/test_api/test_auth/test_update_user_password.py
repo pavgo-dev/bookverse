@@ -41,4 +41,4 @@ async def test_incorrect_oldpassword(client: AsyncClient, user_data: dict):
     response = await client.patch("/api/v1/auth/me/password", json=bad_password_data, headers=headers)
 
     assert response.status_code == 400
-    assert "Incorrect old password" in response.json()["detail"]
+    assert "Passwords do not match" in response.json()["detail"]

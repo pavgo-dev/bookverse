@@ -1,8 +1,8 @@
 import uuid
 
-from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import exceptions
 from app.models.favorite import FavoriteOrm
 from app.models.user import UserOrm
 from app.repository import book as book_repository
@@ -13,7 +13,7 @@ from app.schemas.favorite import FavoriteQueryParams
 async def add_to_favorite(book_id: uuid.UUID, current_user: UserOrm, session: AsyncSession) -> FavoriteOrm:
     book = await book_repository.get_book_by_id(session, book_id)
     if book is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Book with id {book_id} not found")
+        raise exceptions.BookNotFoundException(book_id)
 
     existing_favor = await favorite_repository.get_favorite(
         session=session,
@@ -21,7 +21,7 @@ async def add_to_favorite(book_id: uuid.UUID, current_user: UserOrm, session: As
         user_id=current_user.id,
     )
     if existing_favor:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This book is already in your favorites")
+        raise exceptions.FavoriteExistsException()
 
     new_favor = await favorite_repository.add_favor(session, book_id, current_user)
     await session.commit()
@@ -33,11 +33,11 @@ async def add_to_favorite(book_id: uuid.UUID, current_user: UserOrm, session: As
 async def delete_from_favorite(book_id: uuid.UUID, current_user: UserOrm, session: AsyncSession) -> None:
     book = await book_repository.get_book_by_id(session, book_id)
     if book is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Book with id {book_id} not found")
+        raise exceptions.BookNotFoundException(book_id)
 
     favor = await favorite_repository.get_favorite(session=session, book_id=book_id, user_id=current_user.id)
     if favor is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="This book is not in your favorites")
+        raise exceptions.FavoriteNotFoundException(book_id=book_id)
 
     await favorite_repository.delete_favorite(session, favor)
     await session.commit()

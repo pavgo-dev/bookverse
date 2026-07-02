@@ -40,4 +40,4 @@ async def test_banned(client: AsyncClient, db_session: AsyncSession, user_data: 
     response = await client.post("/api/v1/auth/login", json=login_data)
 
     assert response.status_code == 403
-    assert "banned" in response.json()["detail"]
+    assert "inactive" in response.json()["detail"]

@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.auth import router as auth_router
 from app.api.v1.book import router as book_router
+from app.api.v1.exception_handler import register_exception_handlers
 from app.api.v1.favorite import router as favorite_router
 from app.api.v1.review import router as review_router
 
@@ -11,6 +12,8 @@ app = FastAPI(
     description="Backend service for book catalog",
     version="0.1.0",
 )
+
+register_exception_handlers(app)
 
 # Настраиваем список разрешенных адресов.
 # Сюда нужно вписать адрес, на котором будет работать сайт (фронтенд)
@@ -29,7 +32,7 @@ app.add_middleware(
     allow_headers=["*"],  # Разрешаем любые заголовки
 )
 
-app.include_router(auth_router, prefix="/api/v1/auth", tags=["Auth"])
+app.include_router(auth_router, prefix="/api/v1/auth", tags=["Authentication"])
 app.include_router(book_router, prefix="/api/v1/books", tags=["Books"])
 app.include_router(favorite_router, prefix="/api/v1/favorites", tags=["Favorites"])
 app.include_router(review_router, prefix="/api/v1/reviews", tags=["Reviews"])
@@ -43,13 +46,13 @@ async def root():
     }
 
 
-# 1. Доделать tests/test_api/test_review
-# 2. Рефактор, перенести БД логику из service в repository. (Может ещё DRY лишний код)
-# 3. Сделать Логирование
-# 4. подготовить Dockerfile и docker-compose.yml для запуска приложения вместе с PostgreSQL
+# 1. Доделать проверки на авторизации в тестах, DRY
+# 2. Сделать Логирование
+# 3. подготовить Dockerfile и docker-compose.yml для запуска приложения вместе с PostgreSQL
 #
 # Дополнительно:
 # 1. Реализовать refresh token и его обновление
-# 2. Добавить кеширование списка книг (например, с помощью Redis) – инвалидация при добавлении/изменении книги
+# 2. Добавить эндпоинт для подтверждения email при регистрации
 # 3. Добавить эндпоинт для сброса пароля через email (отправка ссылки)
-# 4. Добавить административную панель (например, через FastAPI admin или просто несколько админских эндпоинтов для управления пользователями)
+# 4. Добавить кеширование списка книг (например, с помощью Redis) – инвалидация при добавлении/изменении книги
+# 5. Добавить административную панель (например, через FastAPI admin или просто несколько админских эндпоинтов для управления пользователями)

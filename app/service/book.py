@@ -1,8 +1,8 @@
 import uuid
 
-from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app import exceptions
 from app.models.book import BookOrm
 from app.repository import book as book_repository
 from app.schemas.book import BookQueryParams, CreateBook, UpdateBook
@@ -17,17 +17,14 @@ async def get_all_books(query: BookQueryParams, session: AsyncSession) -> dict:
 async def get_book(book_id: uuid.UUID, session: AsyncSession) -> dict:
     book_data = await book_repository.get_book_detail(session, book_id)
     if book_data is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Book with id {book_id} not found")
+        raise exceptions.BookNotFoundException(book_id)
 
     return book_data
 
 
 async def create_book(book_data: CreateBook, session: AsyncSession) -> BookOrm:
     if await book_repository.get_book_by_isbn(session, book_data.isbn):
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Book with isbn: '{book_data.isbn}' already exists",
-        )
+        raise exceptions.IsbnConflictException(isbn=book_data.isbn)
 
     book = await book_repository.create_book(session, book_data)
     await session.commit()
@@ -38,7 +35,7 @@ async def update_book(book_id: uuid.UUID, book_data: UpdateBook, session: AsyncS
     book = await book_repository.get_book_by_id(session, book_id)
 
     if book is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Book with id {book_id} not found")
+        raise exceptions.BookNotFoundException(book_id)
 
     update_data = book_data.model_dump(exclude_unset=True)
 
@@ -47,10 +44,7 @@ async def update_book(book_id: uuid.UUID, book_data: UpdateBook, session: AsyncS
         existing_book = await book_repository.get_book_by_isbn(session, new_isbn)
 
         if existing_book and existing_book.id != book_id:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Book with isbn: '{new_isbn}' already exists",
-            )
+            raise exceptions.IsbnConflictException(isbn=new_isbn)
 
     updated_book = await book_repository.update_book(session, book, update_data)
     await session.commit()
@@ -62,7 +56,7 @@ async def update_book(book_id: uuid.UUID, book_data: UpdateBook, session: AsyncS
 async def delete_book(book_id: uuid.UUID, session: AsyncSession) -> None:
     book = await book_repository.get_book_by_id(session, book_id)
     if book is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Book with id {book_id} not found")
+        raise exceptions.BookNotFoundException(book_id)
 
     await book_repository.delete_book(session, book)
     await session.commit()
